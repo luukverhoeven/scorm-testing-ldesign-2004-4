@@ -34,6 +34,14 @@
   </organizations>
 
   <resources>
+    <!--
+      NOTE: After running 'npm run build', update this section to include all files from dist/.
+      Vite typically outputs: index.html and assets/*.js, assets/*.css
+      Example for production build:
+        <file href="index.html"/>
+        <file href="assets/index-[hash].js"/>
+        <file href="assets/index-[hash].css"/>
+    -->
     <resource identifier="RES-1" type="webcontent" adlcp:scormType="sco" href="index.html">
       <file href="index.html"/>
     </resource>

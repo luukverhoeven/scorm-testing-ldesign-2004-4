@@ -37,6 +37,18 @@ const App: React.FC = () => {
   const [interactionId, setInteractionId] = useState("question_1");
   const [interactionResult, setInteractionResult] = useState("correct");
 
+  // Session timing for cmi.session_time
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+
+  // Convert milliseconds to ISO 8601 duration format (PTxHxMxS)
+  const formatSessionTime = (ms: number): string => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `PT${hours}H${minutes}M${seconds}S`;
+  };
+
   const addLog = useCallback((action: string, details: string, result: string, type: LogEntry['type'] = 'info') => {
     const error = scormService.getLastError();
     const errorString = error !== "0" ? ` (${scormService.getErrorString(error)})` : "";
@@ -94,6 +106,7 @@ const App: React.FC = () => {
     const success = scormService.initialize();
     if (success) {
       setStatus(ScormStatus.INITIALIZED);
+      setSessionStartTime(Date.now());
       addLog('Initialize', '("")', 'true', 'success');
       refreshCmiState();
     } else {
@@ -103,9 +116,21 @@ const App: React.FC = () => {
   };
 
   const handleTerminate = () => {
-    // Before terminating, usually we set cmi.exit
+    // Set cmi.exit before terminating
     scormService.setValue('cmi.exit', cmiState.exit);
-    
+
+    // Set session time (SCORM 2004 4th Ed requirement)
+    if (sessionStartTime) {
+      const sessionDuration = Date.now() - sessionStartTime;
+      const sessionTimeFormatted = formatSessionTime(sessionDuration);
+      scormService.setValue('cmi.session_time', sessionTimeFormatted);
+      addLog('SetValue', `("cmi.session_time", "${sessionTimeFormatted}")`, 'true', 'info');
+    }
+
+    // Commit data before terminating (best practice)
+    scormService.commit();
+    addLog('Commit', '("") - Auto before Terminate', 'true', 'info');
+
     const success = scormService.terminate();
     if (success) {
       setStatus(ScormStatus.TERMINATED);
@@ -139,12 +164,16 @@ const App: React.FC = () => {
   const handleInteraction = () => {
     // Record a fake interaction
     // In SCORM 2004, we need to find an available index (n), but for this test we'll overwrite 0
-    const n = 0; 
-    const timestamp = new Date().toISOString();
-    
+    const n = 0;
+    // SCORM 2004 timestamp format: YYYY-MM-DDTHH:MM:SS (no 'Z' timezone suffix)
+    const timestamp = new Date().toISOString().replace('Z', '').split('.')[0];
+    // Learner response for true-false type
+    const learnerResponse = interactionResult === 'correct' ? 'true' : 'false';
+
     const cmds = [
         { key: `cmi.interactions.${n}.id`, val: interactionId },
         { key: `cmi.interactions.${n}.type`, val: 'true-false' },
+        { key: `cmi.interactions.${n}.learner_response`, val: learnerResponse },
         { key: `cmi.interactions.${n}.result`, val: interactionResult },
         { key: `cmi.interactions.${n}.timestamp`, val: timestamp },
         { key: `cmi.interactions.${n}.description`, val: 'Simulated question for testing' }
@@ -389,7 +418,7 @@ const App: React.FC = () => {
                         <option value="suspend">Suspend (Save & Resume later)</option>
                         <option value="normal">Normal (Finished)</option>
                         <option value="logout">Logout</option>
-                        <option value="timeout">Timeout</option>
+                        <option value="time-out">Timeout</option>
                         <option value="">Empty String</option>
                     </select>
                  </div>
