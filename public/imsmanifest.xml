@@ -1,0 +1,6 @@
+<!-- 
+  DEPRECATED: This file should be ignored. 
+  The active SCORM manifest is located at the root of the project: /imsmanifest.xml
+  
+  When zipping this package, ensure /imsmanifest.xml is at the root of the zip file.
+-->

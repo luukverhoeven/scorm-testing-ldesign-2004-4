@@ -3,7 +3,7 @@ import { LogEntry, ScormStatus, ScormState } from './types';
 import { scormService } from './services/scormService';
 import { LogConsole } from './components/LogConsole';
 import { Button } from './components/Button';
-import { Activity, Play, StopCircle, Save, CheckCircle, XCircle, BarChart3, HelpCircle, RotateCcw, Database, User, Clock, FileText } from 'lucide-react';
+import { Activity, Play, StopCircle, Save, CheckCircle, XCircle, BarChart3, HelpCircle, RotateCcw, Database, User, Clock, FileText, Info } from 'lucide-react';
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<ScormStatus>(ScormStatus.NOT_INITIALIZED);
@@ -239,7 +239,11 @@ const App: React.FC = () => {
             
             {/* Completion & Success */}
             <section>
-                <h3 className="text-sm font-bold text-slate-900 mb-3 border-b pb-1">Completion & Success</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-1">Completion & Success</h3>
+                <p className="text-[11px] text-slate-500 mb-3 leading-tight">
+                    Controls <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.completion_status</code> and <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.success_status</code>. 
+                    Use these to verify course completion tracking in the LMS reporting.
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                     <Button onClick={() => handleSetValue('cmi.completion_status', 'completed')} disabled={status !== ScormStatus.INITIALIZED} variant="outline" className="text-xs">
                         Set Completed
@@ -258,10 +262,14 @@ const App: React.FC = () => {
 
             {/* Score */}
             <section>
-                <h3 className="text-sm font-bold text-slate-900 mb-3 border-b pb-1 flex justify-between">
+                <h3 className="text-sm font-bold text-slate-900 mb-1 flex justify-between">
                     <span>Score (Min:0, Max:100)</span>
                     <BarChart3 size={16} className="text-slate-400"/>
                 </h3>
+                <p className="text-[11px] text-slate-500 mb-3 leading-tight">
+                    Updates <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.score.raw</code> (0-100) and <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.score.scaled</code> (0.0-1.0). 
+                    Verify that the LMS gradebook reflects these exact values.
+                </p>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <Button onClick={() => {
                         handleSetValue('cmi.score.min', '0');
@@ -269,7 +277,7 @@ const App: React.FC = () => {
                         handleSetValue('cmi.score.raw', '100');
                         handleSetValue('cmi.score.scaled', '1.0');
                     }} disabled={status !== ScormStatus.INITIALIZED} variant="secondary" className="text-xs">
-                        Score 100% (Raw 100)
+                        Score 100%
                     </Button>
                     <Button onClick={() => {
                         handleSetValue('cmi.score.min', '0');
@@ -277,7 +285,7 @@ const App: React.FC = () => {
                         handleSetValue('cmi.score.raw', '50');
                         handleSetValue('cmi.score.scaled', '0.5');
                     }} disabled={status !== ScormStatus.INITIALIZED} variant="secondary" className="text-xs">
-                        Score 50% (Raw 50)
+                        Score 50%
                     </Button>
                     <Button onClick={() => {
                         handleSetValue('cmi.score.min', '0');
@@ -295,11 +303,13 @@ const App: React.FC = () => {
 
             {/* Bookmark & Suspend */}
             <section>
-                <h3 className="text-sm font-bold text-slate-900 mb-3 border-b pb-1 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 mb-1 flex items-center justify-between">
                     <span>Bookmark & Suspend</span>
                     <Database size={16} className="text-slate-400" />
                 </h3>
-                <p className="text-[10px] text-slate-500 mb-2">Values below auto-populate from LMS on initialization.</p>
+                 <p className="text-[11px] text-slate-500 mb-3 leading-tight">
+                    Tests persistence. <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.location</code> bookmarks the user's place. <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.suspend_data</code> stores custom state (up to 64,000 chars in 4th Ed).
+                </p>
                 <div className="grid grid-cols-1 gap-3">
                     <div className="flex gap-2">
                         <input 
@@ -333,7 +343,10 @@ const App: React.FC = () => {
 
              {/* Interactions */}
              <section>
-                <h3 className="text-sm font-bold text-slate-900 mb-3 border-b pb-1">Interactions</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-1">Interactions</h3>
+                <p className="text-[11px] text-slate-500 mb-3 leading-tight">
+                    Simulates <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.interactions.n</code>. Use this to verify that the LMS captures detailed question/response data.
+                </p>
                 <div className="p-3 bg-slate-50 rounded border border-slate-200">
                     <div className="flex gap-2 mb-2">
                         <select 
@@ -363,14 +376,17 @@ const App: React.FC = () => {
 
             {/* Exit Mode */}
             <section>
-                 <h3 className="text-sm font-bold text-slate-900 mb-3 border-b pb-1">Exit Strategy</h3>
+                 <h3 className="text-sm font-bold text-slate-900 mb-1">Exit Strategy</h3>
+                 <p className="text-[11px] text-slate-500 mb-3 leading-tight">
+                    Controls <code className="bg-slate-100 px-1 rounded text-slate-700">cmi.exit</code>. "Suspend" tells the LMS to preserve data for Resume. "Normal" implies the attempt is finished and data may be cleared.
+                </p>
                  <div className="flex gap-2 mb-2">
                     <select 
                         className="border rounded p-2 text-sm w-full" 
                         value={cmiState.exit}
                         onChange={(e) => setCmiState({...cmiState, exit: e.target.value})}
                     >
-                        <option value="suspend">Suspend (Save state)</option>
+                        <option value="suspend">Suspend (Save & Resume later)</option>
                         <option value="normal">Normal (Finished)</option>
                         <option value="logout">Logout</option>
                         <option value="timeout">Timeout</option>
@@ -389,7 +405,7 @@ const App: React.FC = () => {
 
             <div className="pt-4 border-t">
                  <Button variant="secondary" fullWidth onClick={() => setShowHelp(!showHelp)} className="flex items-center justify-center gap-2">
-                    <HelpCircle size={16}/> {showHelp ? 'Hide Instructions' : 'Show Instructions'}
+                    <HelpCircle size={16}/> {showHelp ? 'Hide Step-by-Step Guide' : 'Show Step-by-Step Guide'}
                  </Button>
             </div>
 
@@ -462,21 +478,48 @@ const App: React.FC = () => {
 
         {/* Instructions Overlay (Conditional) */}
         {showHelp && (
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4 text-sm text-blue-900 shrink-0 overflow-y-auto max-h-60 shadow-sm">
-                <h4 className="font-bold mb-2">How to test Resume/Restore</h4>
-                <ul className="list-disc list-inside space-y-1 mb-2">
-                    <li><strong>1. Start:</strong> Launch the course. <code>Entry</code> should be 'ab-initio'.</li>
-                    <li><strong>2. Save Data:</strong> Type text into "Location" and "Suspend Data" boxes and click the "Set" buttons next to them.</li>
-                    <li><strong>3. Suspend:</strong> Select "Suspend" in Exit Strategy and click "Exit".</li>
-                    <li><strong>4. Relaunch:</strong> Launch the course again from the LMS.</li>
-                    <li><strong>5. Verify:</strong> <code>Entry</code> should be 'resume'. The text boxes should automatically populate with your saved data.</li>
-                </ul>
-                <h4 className="font-bold mb-2 mt-4">General Usage</h4>
-                <ul className="list-disc list-inside space-y-1">
-                    <li><strong>Set Status:</strong> Updates <code>cmi.completion_status</code> and <code>cmi.success_status</code>.</li>
-                    <li><strong>Score:</strong> Sets <code>min(0)</code>, <code>max(100)</code>, <code>raw</code>, and <code>scaled</code>.</li>
-                    <li><strong>Commit:</strong> Force saves data to the server immediately.</li>
-                </ul>
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4 text-sm text-blue-900 shrink-0 overflow-y-auto max-h-60 shadow-sm relative">
+                <button onClick={() => setShowHelp(false)} className="absolute top-2 right-2 text-blue-400 hover:text-blue-700"><XCircle size={16}/></button>
+                <div className="flex items-start gap-2 mb-3">
+                    <Info className="shrink-0 mt-1" size={18} />
+                    <div>
+                        <h4 className="font-bold text-base">Step-by-Step Validation Guide</h4>
+                        <p className="text-xs text-blue-700">Follow these scenarios to validate your LMS.</p>
+                    </div>
+                </div>
+                
+                <div className="space-y-4">
+                    <div>
+                        <h5 className="font-bold text-xs uppercase tracking-wide text-blue-600 border-b border-blue-200 pb-1 mb-1">Scenario 1: Completion & Score</h5>
+                        <ol className="list-decimal list-inside space-y-1 text-xs">
+                            <li>Click <strong>Set Passed</strong> and <strong>Set Completed</strong>.</li>
+                            <li>Click <strong>Score 100%</strong>.</li>
+                            <li>Select <strong>Normal</strong> in Exit Strategy and click <strong>Exit</strong>.</li>
+                            <li><strong>Verify in LMS:</strong> The course should be marked "Completed" and "Passed" with a grade of 100.</li>
+                        </ol>
+                    </div>
+
+                    <div>
+                        <h5 className="font-bold text-xs uppercase tracking-wide text-blue-600 border-b border-blue-200 pb-1 mb-1">Scenario 2: Suspend & Resume</h5>
+                        <ol className="list-decimal list-inside space-y-1 text-xs">
+                            <li>Launch the course (Entry should be "ab-initio").</li>
+                            <li>Type "Page 5" in <strong>Location</strong> and click <strong>Set Location</strong>.</li>
+                            <li>Select <strong>Suspend</strong> in Exit Strategy and click <strong>Exit</strong>.</li>
+                            <li><strong>Re-launch</strong> the course from the LMS.</li>
+                            <li><strong>Verify:</strong> Entry should be "resume". The "Location" box should auto-fill with "Page 5".</li>
+                        </ol>
+                    </div>
+
+                    <div>
+                         <h5 className="font-bold text-xs uppercase tracking-wide text-blue-600 border-b border-blue-200 pb-1 mb-1">Scenario 3: Failed Attempt</h5>
+                        <ol className="list-decimal list-inside space-y-1 text-xs">
+                            <li>Click <strong>Set Failed</strong> and <strong>Set Incomplete</strong>.</li>
+                            <li>Click <strong>Score 0%</strong>.</li>
+                            <li>Select <strong>Normal</strong> and click <strong>Exit</strong>.</li>
+                            <li><strong>Verify in LMS:</strong> The course should be marked "Failed".</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
         )}
 
