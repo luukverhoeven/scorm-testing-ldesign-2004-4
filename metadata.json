@@ -1,0 +1,5 @@
+{
+  "name": "SCORM 2004 4th Ed. Validator",
+  "description": "A comprehensive SCORM 2004 4th Edition test package for validating LMS implementations (Moodle, Blackboard, SCORM Cloud, etc.). Features real-time debugging, manual data model manipulation, and API logging.",
+  "requestFramePermissions": []
+}
