@@ -7,7 +7,8 @@ import {
   Activity, Play, StopCircle, Save, CheckCircle, XCircle,
   HelpCircle, RotateCcw, User, Clock, FileText, Info,
   Award, ThumbsDown, Bookmark, ChevronDown, ChevronUp,
-  Zap, Settings, Download
+  Zap, Settings, Download, AlertTriangle, Database, Type, Gauge,
+  SlidersHorizontal, RefreshCw
 } from 'lucide-react';
 
 // Toast notification component
@@ -38,6 +39,7 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [showHelp, setShowHelp] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [customScore, setCustomScore] = useState(75);
 
@@ -57,7 +59,20 @@ const App: React.FC = () => {
     credit: '',
     totalTime: '',
     launchData: '',
-    language: ''
+    language: '',
+    // Additional preferences
+    audioLevel: '',
+    audioCaptioning: '',
+    deliverySpeed: '',
+    // SCO config
+    scaledPassingScore: '',
+    maxTimeAllowed: '',
+    timeLimitAction: '',
+    // Progress & counts
+    completionThreshold: '',
+    progressMeasure: '',
+    objectivesCount: '',
+    interactionsCount: ''
   });
 
   // Controlled inputs for data that might be restored
@@ -70,6 +85,11 @@ const App: React.FC = () => {
 
   // Session timing for cmi.session_time
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+
+  // Visual restore test slider
+  const [restoreTestValue, setRestoreTestValue] = useState(50);
+  const [restoreTestWasRestored, setRestoreTestWasRestored] = useState(false);
+  const [restoreTestOriginalValue, setRestoreTestOriginalValue] = useState<number | null>(null);
 
   // Show toast notification
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -125,12 +145,39 @@ const App: React.FC = () => {
       credit: scormService.getValue('cmi.credit'),
       totalTime: scormService.getValue('cmi.total_time'),
       launchData: scormService.getValue('cmi.launch_data'),
-      language: scormService.getValue('cmi.learner_preference.language')
+      language: scormService.getValue('cmi.learner_preference.language'),
+      // Additional learner preferences
+      audioLevel: scormService.getValue('cmi.learner_preference.audio_level'),
+      audioCaptioning: scormService.getValue('cmi.learner_preference.audio_captioning'),
+      deliverySpeed: scormService.getValue('cmi.learner_preference.delivery_speed'),
+      // SCO configuration
+      scaledPassingScore: scormService.getValue('cmi.scaled_passing_score'),
+      maxTimeAllowed: scormService.getValue('cmi.max_time_allowed'),
+      timeLimitAction: scormService.getValue('cmi.time_limit_action'),
+      // Progress & counts
+      completionThreshold: scormService.getValue('cmi.completion_threshold'),
+      progressMeasure: scormService.getValue('cmi.progress_measure'),
+      objectivesCount: scormService.getValue('cmi.objectives._count'),
+      interactionsCount: scormService.getValue('cmi.interactions._count')
     };
 
     setCmiState(newState);
     setLocationInput(newState.location);
     setSuspendInput(newState.suspendData);
+
+    // Check for restore test value in suspend_data
+    if (newState.suspendData) {
+      try {
+        const parsed = JSON.parse(newState.suspendData);
+        if (parsed && typeof parsed.restoreTestSlider === 'number') {
+          setRestoreTestValue(parsed.restoreTestSlider);
+          setRestoreTestOriginalValue(parsed.restoreTestSlider);
+          setRestoreTestWasRestored(true);
+        }
+      } catch {
+        // Not JSON or no restore test data - that's fine
+      }
+    }
   }, [status, cmiState.exit]);
 
   const handleInitialize = () => {
@@ -233,8 +280,9 @@ const App: React.FC = () => {
   const runSuspendTest = () => {
     if (status !== ScormStatus.INITIALIZED) return;
 
-    const testLocation = 'Page 5 - Section A';
-    const testData = 'Test bookmark data: ' + new Date().toISOString();
+    // Use manual input values if provided, otherwise use defaults
+    const testLocation = locationInput.trim() || 'Page 5 - Section A';
+    const testData = suspendInput.trim() || 'Test bookmark: ' + new Date().toISOString();
 
     handleSetValue('cmi.location', testLocation, true);
     handleSetValue('cmi.suspend_data', testData, true);
@@ -244,7 +292,10 @@ const App: React.FC = () => {
     scormService.setValue('cmi.exit', 'suspend');
     handleCommit();
 
-    showToast('Test set: Bookmark saved - Click "Close & Save", then reopen to test resume', 'info');
+    const msg = locationInput.trim()
+      ? 'Your bookmark saved - Click "Close & Save", then reopen to test resume'
+      : 'Test bookmark saved - Click "Close & Save", then reopen to test resume';
+    showToast(msg, 'info');
   };
 
   const setCustomScoreValue = () => {
@@ -293,6 +344,203 @@ const App: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Log exported!', 'success');
+  };
+
+  // ===== RESTORE TEST SLIDER =====
+
+  const saveRestoreTestSlider = () => {
+    if (status !== ScormStatus.INITIALIZED) return;
+
+    const dataToSave = JSON.stringify({
+      restoreTestSlider: restoreTestValue,
+      savedAt: new Date().toISOString()
+    });
+
+    const success = scormService.setValue('cmi.suspend_data', dataToSave);
+    if (success) {
+      scormService.setValue('cmi.exit', 'suspend');
+      setCmiState(prev => ({ ...prev, exit: 'suspend' }));
+      handleCommit();
+      addLog('RestoreTest', `Saved slider value: ${restoreTestValue}`, 'Success', 'success');
+      showToast(`Slider saved at ${restoreTestValue}% - Close & reopen to test restore`, 'success');
+      setSuspendInput(dataToSave);
+    } else {
+      addLog('RestoreTest', `Failed to save slider value`, 'Failed', 'error');
+      showToast('Failed to save slider value', 'error');
+    }
+  };
+
+  const resetRestoreTest = () => {
+    setRestoreTestValue(50);
+    setRestoreTestWasRestored(false);
+    setRestoreTestOriginalValue(null);
+    showToast('Restore test reset', 'info');
+  };
+
+  // ===== TROUBLESHOOTING TESTS =====
+
+  // Generate test data of specified size
+  const generateTestData = (sizeKB: number): string => {
+    const pattern = 'ABCD1234';
+    const targetSize = sizeKB * 1024;
+    let data = `[TEST:${sizeKB}KB]`;
+    while (data.length < targetSize) {
+      data += pattern;
+    }
+    return data.substring(0, targetSize);
+  };
+
+  // Test large data storage
+  const testLargeData = (sizeKB: number) => {
+    if (status !== ScormStatus.INITIALIZED) return;
+
+    const testData = generateTestData(sizeKB);
+    addLog('Test', `Testing ${sizeKB}KB suspend_data storage...`, 'Starting', 'info');
+
+    const success = scormService.setValue('cmi.suspend_data', testData);
+    if (success) {
+      // Verify by reading back
+      const readBack = scormService.getValue('cmi.suspend_data');
+      const verified = readBack.length === testData.length;
+
+      if (verified) {
+        addLog('Test', `${sizeKB}KB suspend_data`, `SUCCESS (${testData.length} chars stored & verified)`, 'success');
+        showToast(`${sizeKB}KB stored successfully!`, 'success');
+      } else {
+        addLog('Test', `${sizeKB}KB suspend_data`, `PARTIAL: Stored ${readBack.length} of ${testData.length} chars`, 'warning');
+        showToast(`${sizeKB}KB partially stored (${readBack.length} chars)`, 'error');
+      }
+    } else {
+      addLog('Test', `${sizeKB}KB suspend_data`, 'FAILED - LMS rejected the data', 'error');
+      showToast(`${sizeKB}KB storage FAILED`, 'error');
+    }
+
+    handleCommit();
+  };
+
+  // Test special characters
+  const testSpecialChars = () => {
+    if (status !== ScormStatus.INITIALIZED) return;
+
+    const specialData = [
+      '<script>alert("XSS")</script>',
+      '"double quotes" and \'single quotes\'',
+      'Unicode: émojis 🎓📚✅❌',
+      '日本語 中文 한국어',
+      'Newlines:\nTabs:\tBackslash:\\',
+      '&amp; &lt; &gt; &quot;',
+      'NULL: \x00 and special: \x1F'
+    ].join(' | ');
+
+    addLog('Test', 'Testing special characters in suspend_data...', 'Starting', 'info');
+
+    const success = scormService.setValue('cmi.suspend_data', specialData);
+    if (success) {
+      const readBack = scormService.getValue('cmi.suspend_data');
+      const match = readBack === specialData;
+
+      if (match) {
+        addLog('Test', 'Special characters', 'SUCCESS - All characters preserved', 'success');
+        showToast('Special characters stored correctly!', 'success');
+      } else {
+        addLog('Test', 'Special characters', `MODIFIED: Some chars changed. Original: ${specialData.length}, Retrieved: ${readBack.length}`, 'warning');
+        showToast('Special chars modified by LMS', 'error');
+      }
+    } else {
+      addLog('Test', 'Special characters', 'FAILED - LMS rejected the data', 'error');
+      showToast('Special chars storage FAILED', 'error');
+    }
+
+    handleCommit();
+    setSuspendInput(specialData);
+  };
+
+  // Test rapid commits
+  const testRapidCommits = async () => {
+    if (status !== ScormStatus.INITIALIZED) return;
+
+    addLog('Test', 'Testing 10 rapid commits...', 'Starting', 'info');
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 1; i <= 10; i++) {
+      scormService.setValue('cmi.suspend_data', `Rapid commit test #${i} at ${Date.now()}`);
+      const success = scormService.commit();
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    if (failCount === 0) {
+      addLog('Test', 'Rapid commits', `SUCCESS - All 10 commits succeeded`, 'success');
+      showToast('All 10 rapid commits succeeded!', 'success');
+    } else {
+      addLog('Test', 'Rapid commits', `PARTIAL: ${successCount}/10 succeeded, ${failCount} failed`, 'warning');
+      showToast(`Rapid commits: ${failCount} failed`, 'error');
+    }
+  };
+
+  // Test score edge cases
+  const testScoreEdgeCases = () => {
+    if (status !== ScormStatus.INITIALIZED) return;
+
+    addLog('Test', 'Testing score edge cases...', 'Starting', 'info');
+    const tests = [
+      { name: 'scaled=-1.0', key: 'cmi.score.scaled', val: '-1.0' },
+      { name: 'scaled=0', key: 'cmi.score.scaled', val: '0' },
+      { name: 'scaled=1.0', key: 'cmi.score.scaled', val: '1.0' },
+      { name: 'raw=0', key: 'cmi.score.raw', val: '0' },
+      { name: 'raw=100', key: 'cmi.score.raw', val: '100' },
+      { name: 'min=0', key: 'cmi.score.min', val: '0' },
+      { name: 'max=100', key: 'cmi.score.max', val: '100' }
+    ];
+
+    let allPassed = true;
+    tests.forEach(test => {
+      const success = scormService.setValue(test.key, test.val);
+      if (!success) {
+        addLog('Test', `Score ${test.name}`, 'FAILED', 'error');
+        allPassed = false;
+      }
+    });
+
+    if (allPassed) {
+      addLog('Test', 'Score edge cases', 'SUCCESS - All values accepted', 'success');
+      showToast('All score edge cases passed!', 'success');
+    } else {
+      showToast('Some score values rejected', 'error');
+    }
+
+    handleCommit();
+    refreshCmiState();
+  };
+
+  // Test long bookmark
+  const testLongBookmark = (length: number) => {
+    if (status !== ScormStatus.INITIALIZED) return;
+
+    const bookmark = 'B'.repeat(length);
+    addLog('Test', `Testing ${length}-char bookmark...`, 'Starting', 'info');
+
+    const success = scormService.setValue('cmi.location', bookmark);
+    if (success) {
+      const readBack = scormService.getValue('cmi.location');
+      if (readBack.length === length) {
+        addLog('Test', `${length}-char bookmark`, 'SUCCESS', 'success');
+        showToast(`${length}-char bookmark stored!`, 'success');
+      } else {
+        addLog('Test', `${length}-char bookmark`, `TRUNCATED to ${readBack.length} chars`, 'warning');
+        showToast(`Bookmark truncated to ${readBack.length}`, 'error');
+      }
+    } else {
+      addLog('Test', `${length}-char bookmark`, 'FAILED', 'error');
+      showToast(`${length}-char bookmark FAILED`, 'error');
+    }
+
+    handleCommit();
+    setLocationInput(bookmark);
   };
 
   // Attempt auto-init on load
@@ -423,6 +671,161 @@ const App: React.FC = () => {
             After running a test, click "Close & Save" below, then check your LMS gradebook
           </p>
         </section>
+
+        {/* ===== VISUAL RESTORE TEST ===== */}
+        <section className={`p-4 rounded-lg border-2 ${restoreTestWasRestored ? 'bg-green-50 border-green-300' : 'bg-purple-50 border-purple-200'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <SlidersHorizontal className={restoreTestWasRestored ? 'text-green-600' : 'text-purple-600'} size={20} />
+            <h3 className="text-sm font-bold text-slate-900">Visual Restore Test</h3>
+            {restoreTestWasRestored && (
+              <span className="ml-auto px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                <CheckCircle size={12} /> RESTORED!
+              </span>
+            )}
+          </div>
+
+          {restoreTestWasRestored && restoreTestOriginalValue !== null && (
+            <div className="mb-3 p-2 bg-green-100 border border-green-300 rounded-lg text-sm text-green-800">
+              <strong>Success!</strong> Slider was restored to <strong>{restoreTestOriginalValue}%</strong> from your previous session.
+            </div>
+          )}
+
+          <div className="mb-3">
+            <p className="text-xs text-slate-600 mb-2">
+              Move the slider, save it, then close and reopen to verify data persistence:
+            </p>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={restoreTestValue}
+                onChange={(e) => {
+                  setRestoreTestValue(parseInt(e.target.value));
+                  setRestoreTestWasRestored(false);
+                }}
+                className="flex-1 h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                disabled={!isReady}
+              />
+              <span className={`text-2xl font-bold w-16 text-right ${restoreTestWasRestored ? 'text-green-600' : 'text-purple-600'}`}>
+                {restoreTestValue}%
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={saveRestoreTestSlider}
+              disabled={!isReady}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg transition-colors"
+            >
+              <Save size={16} /> Save Slider Position
+            </button>
+            <button
+              onClick={resetRestoreTest}
+              disabled={!isReady}
+              className="px-3 py-2 bg-slate-200 hover:bg-slate-300 disabled:bg-slate-100 disabled:cursor-not-allowed text-slate-700 text-sm rounded-lg transition-colors"
+              title="Reset test"
+            >
+              <RefreshCw size={16} />
+            </button>
+          </div>
+
+          <p className="text-[10px] text-slate-500 mt-2 text-center">
+            After saving, click "Close & Save" below, then reopen the course from your LMS
+          </p>
+        </section>
+
+        {/* ===== TROUBLESHOOTING TESTS ===== */}
+        <button
+          onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+          className="flex items-center justify-between w-full p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 hover:bg-amber-100 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} />
+            <span className="font-bold text-sm">Troubleshooting Tests</span>
+            <span className="text-xs opacity-70">Find LMS limits & issues</span>
+          </div>
+          {showTroubleshooting ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+
+        {showTroubleshooting && (
+          <div className="p-4 bg-amber-50 border border-t-0 border-amber-200 rounded-b-lg -mt-2 space-y-4">
+
+            {/* Large Data Tests */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Database size={16} className="text-amber-600" />
+                <span className="text-xs font-bold text-amber-800">Data Size Limits</span>
+                <span className="text-[10px] text-amber-600 ml-auto">SCORM spec: 64KB max</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 10, 32, 64].map(size => (
+                  <button
+                    key={size}
+                    onClick={() => testLargeData(size)}
+                    disabled={!isReady}
+                    className="px-3 py-2 bg-white border border-amber-300 rounded text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                  >
+                    {size}KB
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Character & Encoding Tests */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Type size={16} className="text-amber-600" />
+                <span className="text-xs font-bold text-amber-800">Character Encoding</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={testSpecialChars}
+                  disabled={!isReady}
+                  className="px-3 py-2 bg-white border border-amber-300 rounded text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                >
+                  Special Chars & Unicode
+                </button>
+                <button
+                  onClick={testRapidCommits}
+                  disabled={!isReady}
+                  className="px-3 py-2 bg-white border border-amber-300 rounded text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                >
+                  Rapid Commits (10x)
+                </button>
+              </div>
+            </div>
+
+            {/* Score & Bookmark Tests */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Gauge size={16} className="text-amber-600" />
+                <span className="text-xs font-bold text-amber-800">Edge Cases</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={testScoreEdgeCases}
+                  disabled={!isReady}
+                  className="px-3 py-2 bg-white border border-amber-300 rounded text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                >
+                  Score Edge Values
+                </button>
+                <button
+                  onClick={() => testLongBookmark(1000)}
+                  disabled={!isReady}
+                  className="px-3 py-2 bg-white border border-amber-300 rounded text-xs font-bold text-amber-700 hover:bg-amber-100 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                >
+                  Long Bookmark (1000 chars)
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-amber-600 text-center">
+              Check the log console on the right for detailed results
+            </p>
+          </div>
+        )}
 
         {/* Custom Score Slider */}
         <section className="p-4 rounded-lg border border-slate-200 bg-white">
@@ -588,9 +991,9 @@ const App: React.FC = () => {
         {/* Learner Info Panel */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-4 shrink-0">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-            <User size={14}/> Student Information
+            <User size={14}/> Student & LMS Information
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-3 gap-x-4">
             <div>
               <label className="text-[10px] text-slate-400 block">Name</label>
               <div className="text-sm font-semibold truncate">
@@ -614,6 +1017,16 @@ const App: React.FC = () => {
               </div>
             </div>
             <div>
+              <label className="text-[10px] text-slate-400 block">Session Type</label>
+              <div className="text-sm">
+                {cmiState.entry === 'resume' ? (
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">Resumed</span>
+                ) : (
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-600">New Session</span>
+                )}
+              </div>
+            </div>
+            <div>
               <label className="text-[10px] text-slate-400 block">Previous Time</label>
               <div className="text-sm font-mono flex items-center gap-1">
                 <Clock size={12} className="text-slate-400"/>
@@ -627,13 +1040,67 @@ const App: React.FC = () => {
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-slate-400 block">Session Type</label>
+              <label className="text-[10px] text-slate-400 block">Language</label>
               <div className="text-sm">
-                {cmiState.entry === 'resume' ? (
-                  <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">Resumed</span>
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-600">New Session</span>
-                )}
+                {cmiState.language || <span className="text-slate-300 italic">N/A</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Passing Score</label>
+              <div className="text-sm font-mono">
+                {cmiState.scaledPassingScore ? `${(parseFloat(cmiState.scaledPassingScore) * 100).toFixed(0)}%` : <span className="text-slate-300 italic">Not set</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Time Limit</label>
+              <div className="text-sm font-mono">
+                {cmiState.maxTimeAllowed || <span className="text-slate-300 italic">None</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Audio Level</label>
+              <div className="text-sm">
+                {cmiState.audioLevel ? `${(parseFloat(cmiState.audioLevel) * 100).toFixed(0)}%` : <span className="text-slate-300 italic">N/A</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Captions</label>
+              <div className="text-sm">
+                {cmiState.audioCaptioning === '1' ? (
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-700">On</span>
+                ) : cmiState.audioCaptioning === '-1' ? (
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-600">Off</span>
+                ) : <span className="text-slate-300 italic">Default</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Launch Data</label>
+              <div className="text-sm font-mono truncate" title={cmiState.launchData}>
+                {cmiState.launchData || <span className="text-slate-300 italic">None</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Completion Threshold</label>
+              <div className="text-sm font-mono">
+                {cmiState.completionThreshold ? `${(parseFloat(cmiState.completionThreshold) * 100).toFixed(0)}%` : <span className="text-slate-300 italic">Not set</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Progress</label>
+              <div className="text-sm font-mono">
+                {cmiState.progressMeasure ? `${(parseFloat(cmiState.progressMeasure) * 100).toFixed(0)}%` : <span className="text-slate-300 italic">0%</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Objectives</label>
+              <div className="text-sm font-mono">
+                {cmiState.objectivesCount || <span className="text-slate-300 italic">0</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 block">Interactions</label>
+              <div className="text-sm font-mono">
+                {cmiState.interactionsCount || <span className="text-slate-300 italic">0</span>}
               </div>
             </div>
           </div>

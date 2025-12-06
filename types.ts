@@ -38,7 +38,7 @@ export interface ScormState {
   exit: string;
   entry: string; // 'ab-initio', 'resume', or ''
   mode: string;  // 'normal', 'browse', 'review'
-  
+
   // Learner Info
   learnerId: string;
   learnerName: string;
@@ -46,4 +46,20 @@ export interface ScormState {
   totalTime: string; // Total time from previous sessions
   launchData: string;
   language: string;
+
+  // Additional Learner Preferences
+  audioLevel: string;      // 0.0 to 1.0
+  audioCaptioning: string; // -1, 0, or 1
+  deliverySpeed: string;   // 0.0 to infinity
+
+  // SCO Configuration
+  scaledPassingScore: string; // -1.0 to 1.0
+  maxTimeAllowed: string;     // ISO 8601 duration
+  timeLimitAction: string;    // exit,message, exit,no message, continue,message, continue,no message
+
+  // Progress & Counts
+  completionThreshold: string; // Minimum progress_measure for completion
+  progressMeasure: string;     // 0.0 to 1.0
+  objectivesCount: string;     // Number of objectives
+  interactionsCount: string;   // Number of recorded interactions
 }
