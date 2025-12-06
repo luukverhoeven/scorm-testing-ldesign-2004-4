@@ -1,96 +1,141 @@
-# SCORM 2004 4th Edition Validator
+# SCORM 2004 4th Edition Test Tool
 
-This application is a robust, single-page SCO (Shareable Content Object) designed to validate Learning Management Systems (LMS) for SCORM 2004 4th Edition compliance. It is specifically optimized for testing Moodle, SCORM Cloud, and other standard LMS environments.
+A simple, user-friendly tool to test if your Learning Management System (LMS) correctly tracks course progress, grades, and bookmarks. Works with Moodle, SCORM Cloud, Blackboard, and any SCORM 2004 compliant LMS.
 
-It provides a visual dashboard to manipulate the SCORM Data Model (CMI) and view real-time logs of API transactions.
+**No technical knowledge required** - just click buttons and check your LMS!
 
-## 📦 Packaging for LMS (Moodle)
+## Quick Start
 
-**CRITICAL:** To create a valid SCORM package, you must zip the **contents** of the root directory, not the directory itself.
+### 1. Build the Package
 
-1.  Navigate to the root folder where `index.html` and `imsmanifest.xml` are located.
-2.  Select all files (including the `assets` or `dist` folders if built, `App.tsx`, etc. - though for a production build you usually only zip the build artifacts. For this source package, ensure `index.html` is at the root).
-3.  Create a ZIP file.
-4.  **Verify:** Open the zip. You should see `imsmanifest.xml` immediately, **not** inside a subfolder.
+```bash
+npm install
+npm run package
+```
 
-## 🧪 Step-by-Step Testing Guide
+This creates `scorm-package.zip` ready for upload.
 
-Use the following scenarios to validate your LMS configuration:
+### 2. Upload to Your LMS
 
-### Scenario 1: Basic Completion & Scoring
-**Goal:** Verify the LMS records grades and completion status correctly.
-1.  **Launch** the course.
-2.  Click **Set Passed** (Success Status) and **Set Completed** (Completion Status).
-3.  Click **Score 100%** (sets Raw: 100, Scaled: 1.0).
-4.  Under Exit Strategy, select **Normal (Finished)**.
-5.  Click **Exit**.
-6.  **LMS Check:** Return to your LMS gradebook. It should show the attempt as "Completed", "Passed", and a grade of 100.
+Upload the `scorm-package.zip` file to your LMS as a SCORM 2004 package.
 
-### Scenario 2: Suspend & Resume (Bookmarking)
-**Goal:** Verify the LMS preserves user data between sessions.
-1.  **Launch** the course. Note that **Entry Mode** (top left) says `ab-initio`.
-2.  In the **Bookmark & Suspend** section:
-    *   Type `Page 10` into the Location box and click **Set Location**.
-    *   Type `User visited section A` into the Suspend Data box and click **Set Data**.
-3.  Under Exit Strategy, select **Suspend (Save & Resume later)**.
-4.  Click **Exit**.
-5.  **Re-launch** the course from the LMS.
-6.  **LMS Check:**
-    *   **Entry Mode** should now display `resume` (with a blue badge).
-    *   The **Location** box should automatically be filled with `Page 10`.
-    *   The **Suspend Data** box should automatically be filled with `User visited section A`.
+### 3. Run Tests
 
-### Scenario 3: Failed Attempt
-**Goal:** Verify the LMS handles failure states.
-1.  **Launch** the course.
-2.  Click **Set Failed** and **Set Incomplete**.
-3.  Click **Score 0%**.
-4.  Under Exit Strategy, select **Normal (Finished)**.
-5.  Click **Exit**.
-6.  **LMS Check:** The gradebook should show a failing grade (0) and the status "Failed".
+Launch the course and use the **Quick Tests** buttons:
 
-## ✨ Features
+| Button | What it Tests | What to Check in LMS |
+|--------|---------------|---------------------|
+| **Pass Test** (green) | Grade reporting | Gradebook shows 100% and "Passed" |
+| **Fail Test** (red) | Failure states | Gradebook shows 0% and "Failed" |
+| **Suspend Test** (blue) | Bookmarking/Resume | Reopen course - should show "Resumed Session" |
 
-### 1. API Discovery & Connection
-*   **Robust Discovery**: Implements a recursive search algorithm to find the `API_1484_11` object (standard for SCORM 2004), handling iframes and popups.
-*   **Connection Status**: Visual indicators for `Not Initialized`, `Initialized`, `Terminated`, or `Failed to Connect`.
-*   **Error Handling**: Automatically fetches `GetLastError`, `GetErrorString`, and `GetDiagnostic` if an API call returns `false`.
+After clicking a test button, click **Close & Save** to end the session, then verify in your LMS.
 
-### 2. Learner & Session Information
-On initialization, the app retrieves and displays:
-*   **Learner Name** (`cmi.learner_name`)
-*   **Learner ID** (`cmi.learner_id`)
-*   **Credit Mode** (`cmi.credit` - Credit/No-Credit)
-*   **Entry Mode** (`cmi.entry` - ab-initio/resume)
-*   **Mode** (`cmi.mode` - normal/browse/review)
-*   **Total Time** (`cmi.total_time`)
-*   **Launch Data** (`cmi.launch_data`)
-*   **Language** (`cmi.learner_preference.language`)
+## Testing Guide
 
-### 3. Persistence & Resume Testing
-*   **Visual Resume**: The UI explicitly flags if the session is in `RESUME` mode.
-*   **Data Restoration**: Automatically populates the "Location" and "Suspend Data" input fields with values from the LMS upon initialization, allowing quick verification that the LMS successfully restored the user's track.
+### Test 1: Verify Grades Work
 
-### 4. Data Model Controls
-*   **Completion**: Set status to `completed` or `incomplete`.
-*   **Success**: Set status to `passed` or `failed`.
-*   **Scoring**:
-    *   Sets `cmi.score.min` (0) and `cmi.score.max` (100).
-    *   Presets for 0%, 50%, and 100% (updates `raw` and `scaled` automatically).
-*   **Bookmarks**: Read/Write `cmi.location`.
-*   **Suspend Data**: Read/Write `cmi.suspend_data` (supports arbitrary text).
+1. Launch the course
+2. Click the green **Pass Test** button
+3. Click **Close & Save**
+4. Check your LMS gradebook - should show 100% and "Passed"
 
-### 5. Interactions
-*   Simulates question interactions (`cmi.interactions.n`).
-*   Sets `id`, `type` (true-false), `result` (correct/incorrect), `timestamp`, and `description`.
-*   Useful for testing gradebook detail views in Moodle.
+### Test 2: Verify Resume/Bookmarking Works
 
-### 6. Exit Strategies
-*   **Normal**: Sets `cmi.exit` to `normal` (clears resume data usually).
-*   **Suspend**: Sets `cmi.exit` to `suspend` (tells LMS to keep `cmi.suspend_data` and `cmi.location` for next time).
-*   **Timeout/Logout**: Simulates other exit scenarios.
+1. Launch the course
+2. Click the blue **Suspend Test** button
+3. Click **Close & Save**
+4. Reopen the course from your LMS
+5. You should see:
+   - "Resumed Session!" banner
+   - Bookmark showing "Page 5 - Section A"
 
-### 7. Debug Console
-*   **Real-time Logging**: Every API call (`Initialize`, `GetValue`, `SetValue`, `Commit`, `Terminate`) is logged.
-*   **Return Values**: Shows exactly what the LMS returned for every `GetValue` call.
-*   **Timestamps**: precise timing for all transactions.
+### Test 3: Verify Failure States Work
+
+1. Launch the course
+2. Click the red **Fail Test** button
+3. Click **Close & Save**
+4. Check your LMS gradebook - should show 0% and "Failed"
+
+### Test 4: Custom Grade
+
+1. Use the **grade slider** to set any score (0-100)
+2. Click **Set Grade**
+3. Click **Close & Save**
+4. Verify the exact grade appears in your LMS
+
+## Features
+
+### For Everyone
+- **One-click test scenarios** - Pass, Fail, and Suspend tests
+- **Visual status dashboard** - See progress, result, grade, and bookmark at a glance
+- **Toast notifications** - Clear feedback for every action
+- **Score slider** - Set any grade from 0-100%
+- **Export logs** - Download test results as JSON
+
+### For Developers (Advanced Options)
+Click "Show Advanced Options" to access:
+- Manual completion/success status controls
+- Custom bookmark and suspend data
+- Question interaction recording
+- Full SCORM API transaction log
+
+## What Gets Tested
+
+| SCORM Element | What It Means |
+|---------------|---------------|
+| `cmi.completion_status` | Course progress (complete/incomplete) |
+| `cmi.success_status` | Pass/fail result |
+| `cmi.score.raw` | Grade (0-100) |
+| `cmi.score.scaled` | Normalized grade (0.0-1.0) |
+| `cmi.location` | Bookmark position |
+| `cmi.suspend_data` | Custom saved data |
+| `cmi.session_time` | Time spent in session |
+
+## Building from Source
+
+### Requirements
+- Node.js 18+
+- npm
+
+### Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Development server
+npm run dev
+
+# Build production package
+npm run package
+```
+
+### Package Contents
+
+The `scorm-package.zip` contains:
+- `index.html` - Main application
+- `assets/` - Bundled JavaScript
+- `imsmanifest.xml` - SCORM 2004 4th Edition manifest
+- `metadata.json` - Package metadata
+
+## Troubleshooting
+
+### "Connection Failed" on launch
+- Ensure the package is uploaded as SCORM 2004 (not SCORM 1.2)
+- Check that your LMS supports SCORM 2004 4th Edition
+- Try a different browser
+
+### Grades not appearing in LMS
+- Make sure you clicked **Close & Save** after setting values
+- Some LMS platforms require a page refresh to show updated grades
+- Check your LMS SCORM settings for grade synchronization options
+
+### Resume not working
+- Ensure you selected "Save progress & return later" before closing
+- Some LMS platforms have settings that control resume behavior
+- Verify the LMS supports `cmi.suspend_data`
+
+## License
+
+MIT License - Use freely for testing your LMS implementations.
