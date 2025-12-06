@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SCORM package
+        run: npm run package
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: scorm-package.zip
+          generate_release_notes: true
+          body: |
+            ## SCORM 2004 4th Edition Test Tool
+
+            Download `scorm-package.zip` and upload it to your LMS (Moodle, SCORM Cloud, Blackboard, etc.) as a SCORM 2004 package.
+
+            ### Quick Start
+            1. Download `scorm-package.zip` below
+            2. Upload to your LMS as a SCORM 2004 package
+            3. Launch and use the Quick Test buttons to verify your LMS

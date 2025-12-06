@@ -1,7 +1,7 @@
 {
   "name": "scorm-2004-4th-ed.-validator",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
