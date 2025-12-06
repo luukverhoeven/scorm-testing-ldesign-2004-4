@@ -2,41 +2,21 @@
 
 A simple, user-friendly tool to test if your Learning Management System (LMS) correctly tracks course progress, grades, and bookmarks. Works with Moodle, SCORM Cloud, Blackboard, and any SCORM 2004 compliant LMS.
 
-**No technical knowledge required** - just click buttons and check your LMS!
+---
+
+# For End Users
+
+**No technical knowledge required** - just download, upload, and click buttons!
 
 ## Download
 
 **[Download the latest release](../../releases/latest)** - Get `scorm-package.zip` ready to upload to your LMS.
 
-Or build from source (see below).
-
 ## Quick Start
 
-### 1. Get the Package
-
-**Option A:** Download `scorm-package.zip` from the [Releases page](../../releases/latest)
-
-**Option B:** Build from source:
-```bash
-npm install
-npm run package
-```
-
-### 2. Upload to Your LMS
-
-Upload the `scorm-package.zip` file to your LMS as a SCORM 2004 package.
-
-### 3. Run Tests
-
-Launch the course and use the **Quick Tests** buttons:
-
-| Button | What it Tests | What to Check in LMS |
-|--------|---------------|---------------------|
-| **Pass Test** (green) | Grade reporting | Gradebook shows 100% and "Passed" |
-| **Fail Test** (red) | Failure states | Gradebook shows 0% and "Failed" |
-| **Suspend Test** (blue) | Bookmarking/Resume | Reopen course - should show "Resumed Session" |
-
-After clicking a test button, click **Close & Save** to end the session, then verify in your LMS.
+1. Download `scorm-package.zip` from the [Releases page](../../releases/latest)
+2. Upload to your LMS as a **SCORM 2004** package
+3. Launch the course and start testing!
 
 ## Testing Guide
 
@@ -60,7 +40,7 @@ After clicking a test button, click **Close & Save** to end the session, then ve
 ### Test 3: Visual Restore Test
 
 1. Launch the course
-2. Move the **Visual Restore Test** slider to any position
+2. Move the **Visual Restore Test** slider to any position (e.g., 73%)
 3. Click **Save Slider Position**
 4. Click **Close & Save**
 5. Reopen the course - the slider should restore to your saved position with a green "RESTORED!" badge
@@ -79,56 +59,55 @@ After clicking a test button, click **Close & Save** to end the session, then ve
 3. Click **Close & Save**
 4. Verify the exact grade appears in your LMS
 
+## Quick Test Buttons
+
+| Button | What it Tests | What to Check in LMS |
+|--------|---------------|---------------------|
+| **Pass Test** (green) | Grade reporting | Gradebook shows 100% and "Passed" |
+| **Fail Test** (red) | Failure states | Gradebook shows 0% and "Failed" |
+| **Suspend Test** (blue) | Bookmarking/Resume | Reopen course - should show "Resumed Session" |
+
 ## Features
 
-### For Everyone
 - **One-click test scenarios** - Pass, Fail, and Suspend tests
 - **Visual restore test** - Slider that shows if data persistence works
 - **Visual status dashboard** - See progress, result, grade, and bookmark at a glance
 - **Toast notifications** - Clear feedback for every action
 - **Score slider** - Set any grade from 0-100%
-- **Export logs** - Download test results as JSON
+- **Student info display** - See learner ID, name, and LMS settings
 
-### Troubleshooting Tests
-Find LMS limits and issues with one-click tests:
-- **Data size limits** - Test 1KB, 10KB, 32KB, 64KB storage
-- **Special characters** - Unicode, emojis, HTML encoding
-- **Rapid commits** - Test LMS queue handling
-- **Score edge cases** - Boundary values (0, 100, -1.0, 1.0)
-- **Long bookmarks** - Test bookmark length limits
+## Troubleshooting Tests
 
-### For Developers (Advanced Options)
-Click "Show Advanced Options" to access:
-- Manual completion/success status controls
-- Custom bookmark and suspend data
-- Question interaction recording
-- Full SCORM API transaction log
+Find LMS limits and issues (click "Troubleshooting Tests" to expand):
 
-## Student & LMS Information
+| Test | What it Checks |
+|------|----------------|
+| **1KB / 10KB / 32KB / 64KB** | How much data your LMS can store |
+| **Special Characters** | Unicode, emojis, HTML encoding support |
+| **Rapid Commits** | If LMS handles quick successive saves |
+| **Score Edge Cases** | Boundary values (0, 100, -1.0, 1.0) |
+| **Long Bookmark** | Maximum bookmark length |
 
-The tool displays comprehensive LMS data:
-- Learner ID and Name
-- Credit status
-- Session type (new/resumed)
-- Previous time spent
-- Mode and Language
-- Passing score threshold
-- Time limits
-- Audio preferences
-- Progress measures
-- Objectives and interactions count
+## Common Issues
 
-## What Gets Tested
+### "Connection Failed" on launch
+- Ensure the package is uploaded as **SCORM 2004** (not SCORM 1.2)
+- Check that your LMS supports SCORM 2004 4th Edition
+- Try a different browser
 
-| SCORM Element | What It Means |
-|---------------|---------------|
-| `cmi.completion_status` | Course progress (complete/incomplete) |
-| `cmi.success_status` | Pass/fail result |
-| `cmi.score.raw` | Grade (0-100) |
-| `cmi.score.scaled` | Normalized grade (0.0-1.0) |
-| `cmi.location` | Bookmark position |
-| `cmi.suspend_data` | Custom saved data |
-| `cmi.session_time` | Time spent in session |
+### Grades not appearing in LMS
+- Make sure you clicked **Close & Save** after setting values
+- Some LMS platforms require a page refresh to show updated grades
+- Check your LMS SCORM settings for grade synchronization options
+
+### Resume not working
+- Ensure you selected "Save progress & return later" before closing
+- Some LMS platforms have settings that control resume behavior
+- Use the **Visual Restore Test** to verify data persistence
+
+---
+
+# For Developers
 
 ## Building from Source
 
@@ -142,54 +121,106 @@ The tool displays comprehensive LMS data:
 # Install dependencies
 npm install
 
-# Development server
+# Development server (hot reload)
 npm run dev
 
 # Build production package
 npm run package
 ```
 
+This creates `scorm-package.zip` in the project root.
+
 ### Package Contents
 
 The `scorm-package.zip` contains:
 - `index.html` - Main application
-- `assets/` - Bundled JavaScript
+- `assets/` - Bundled JavaScript (React + Vite)
 - `imsmanifest.xml` - SCORM 2004 4th Edition manifest
 - `metadata.json` - Package metadata
+
+## Advanced Options
+
+Click "Show Advanced Options" in the tool to access:
+- Manual completion/success status controls
+- Custom bookmark and suspend data input
+- Question interaction recording
+- Full SCORM API transaction log
+- Export logs as JSON
+
+## SCORM Data Model Elements
+
+The tool tests these SCORM 2004 elements:
+
+| Element | Description |
+|---------|-------------|
+| `cmi.completion_status` | Course progress (complete/incomplete) |
+| `cmi.success_status` | Pass/fail result |
+| `cmi.score.raw` | Grade (0-100) |
+| `cmi.score.scaled` | Normalized grade (-1.0 to 1.0) |
+| `cmi.location` | Bookmark position (up to 1000 chars) |
+| `cmi.suspend_data` | Custom saved data (up to 64KB) |
+| `cmi.session_time` | Time spent in session (ISO 8601) |
+| `cmi.exit` | Exit type (suspend, normal, logout, time-out) |
+
+### Read-only Elements Displayed
+
+| Element | Description |
+|---------|-------------|
+| `cmi.learner_id` | User ID from LMS |
+| `cmi.learner_name` | User name from LMS |
+| `cmi.entry` | Entry type (ab-initio, resume) |
+| `cmi.mode` | Launch mode (normal, browse, review) |
+| `cmi.credit` | Credit status |
+| `cmi.total_time` | Cumulative time from previous sessions |
+| `cmi.scaled_passing_score` | Passing threshold |
+| `cmi.completion_threshold` | Completion threshold |
+| `cmi.progress_measure` | Current progress (0.0-1.0) |
+| `cmi.objectives._count` | Number of objectives |
+| `cmi.interactions._count` | Number of interactions |
 
 ## CI/CD
 
 This project uses GitHub Actions for automated builds:
 
-- **On every push/PR**: Builds and validates the package
-- **On version tags**: Creates a GitHub Release with `scorm-package.zip`
+- **On every push/PR to main**: Builds and validates the package, uploads as artifact
+- **On version tags (`v*`)**: Creates a GitHub Release with `scorm-package.zip`
 
-To create a new release:
+### Creating a Release
+
 ```bash
+# Tag the release
 git tag v1.0.0
+
+# Push the tag to trigger the release workflow
 git push origin v1.0.0
 ```
 
-## Troubleshooting
+The workflow will automatically:
+1. Build the SCORM package
+2. Create a GitHub Release
+3. Attach `scorm-package.zip` as a downloadable asset
+4. Generate release notes from commits
 
-### "Connection Failed" on launch
-- Ensure the package is uploaded as SCORM 2004 (not SCORM 1.2)
-- Check that your LMS supports SCORM 2004 4th Edition
-- Try a different browser
+### Workflow Files
 
-### Grades not appearing in LMS
-- Make sure you clicked **Close & Save** after setting values
-- Some LMS platforms require a page refresh to show updated grades
-- Check your LMS SCORM settings for grade synchronization options
+- `.github/workflows/build.yml` - CI build on push/PR
+- `.github/workflows/release.yml` - Release on version tags
 
-### Resume not working
-- Ensure you selected "Save progress & return later" before closing
-- Some LMS platforms have settings that control resume behavior
-- Verify the LMS supports `cmi.suspend_data`
+## Project Structure
 
-### Data size issues
-- Use the **Troubleshooting Tests** to find your LMS limits
-- SCORM 2004 spec allows 64KB for suspend_data, but some LMS have lower limits
+```
+├── App.tsx              # Main React application
+├── types.ts             # TypeScript interfaces
+├── services/
+│   └── scormService.ts  # SCORM API wrapper
+├── components/
+│   ├── Button.tsx       # Reusable button component
+│   └── LogConsole.tsx   # API transaction log display
+├── scripts/
+│   └── build-scorm.sh   # Build script
+├── imsmanifest.xml      # SCORM manifest
+└── .github/workflows/   # CI/CD workflows
+```
 
 ## License
 
